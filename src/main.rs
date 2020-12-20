@@ -109,26 +109,25 @@ impl HolidayStats<'_> {
 fn main() -> Result<()> {
     // fetch_data();
     let selected_option = get_starting_input();
-    // todo:  1) how many holidates in the US 2019
-    // todo:  2) how many holidays in a different country in 2019 (prompt user for country code)
-    // todo:  3) compare two different countries (prompt user for two country codes)
-    // todo:  4) I just want to check if a number is prime
-    // todo:  5) Exit
+    // todo:  1) how many holidays in a country in 2019 (prompt user for country code)
+    // todo:  2) compare two different countries (prompt user for two country codes)
+    // todo:  3) I just want to check if a number is prime
+    // todo:  4) Exit
     match selected_option {
-        Ok(1) => {
-            match fetch_data(DEFAULT_COUNTRY_CODE) {
-                Ok(api_data) => {
-                    let pretty_json = serde_json::to_string_pretty(&api_data)?;
-                    println!("Data received");
-                    // println!("data received: \n{}\n", pretty_json);
-                }
-                Err(e) => {
-                    println!("Error: {}", e);
-                }
-            }
-        }
+        // Ok(1) => {
+        //     match fetch_data(DEFAULT_COUNTRY_CODE) {
+        //         Ok(api_data) => {
+        //             let pretty_json = serde_json::to_string_pretty(&api_data)?;
+        //             println!("Data received");
+        //             // println!("data received: \n{}\n", pretty_json);
+        //         }
+        //         Err(e) => {
+        //             println!("Error: {}", e);
+        //         }
+        //     }
+        // }
 
-        Ok(2) => {
+        Ok(1) => {
             println!("2qwerty");
             match get_input("Enter a country code: ") {
                 Ok(country_code) => {
@@ -149,14 +148,14 @@ fn main() -> Result<()> {
             }
         }
 
-        Ok(3) => {
+        Ok(2) => {
             println!("3zxc");
         }
 
-        Ok(4) => {
+        Ok(3) => {
             println!("4yurt");
         }
-        Ok(5) => {
+        Ok(4) => {
             println!("See you later.");
         }
         Ok(_) => {
@@ -211,11 +210,10 @@ fn fetch_data(country_code: &str)
 fn get_starting_input() -> std::result::Result<i8, Box<dyn Error>> {
     // println!("Input a country code or hit enter to use the default (US): ");
     println!("Enter the corresponding number to select one of the following: ");
-    println!("1) I want to know how many holidays there were in the US in 2019");
-    println!("2) I want to know how many holidays there were in 2019 in a different country");
-    println!("3) I want to compare two different countries' holidays from 2019");
-    println!("4) Actually I just want to check if a number is prime.");
-    println!("5) Exit.");
+    println!("1) I want to know how many holidays there were in 2019 in a different country");
+    println!("2) I want to compare two different countries' holidays from 2019");
+    println!("3) Actually I just want to check if a number is prime.");
+    println!("4) Exit.");
 
     let mut input = String::new();
     io::stdin().read_line(&mut input)?;
