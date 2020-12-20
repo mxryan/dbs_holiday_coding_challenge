@@ -7,6 +7,7 @@ use std::io::*;
 use std::ops::Add;
 use std::collections::HashMap;
 use std::error::Error;
+use serde_json::ser::State;
 
 const API_ROOT: &str = "https://holidayapi.com/v1/holidays";
 const YEAR: &str = "2019";
@@ -58,20 +59,23 @@ struct RequestsInfo {
     used: i32,
 }
 
+#[derive(Debug)]
 struct HolidayStats {
     public_holidays: Vec<usize>,
     weekday_holidays: Vec<usize>,
     weekend_holidays: Vec<usize>,
     all_holidays: Vec<Holiday>,
+    country_code: String,
 }
 
 impl HolidayStats {
-    fn from(holidays: &[Holiday]) -> HolidayStats {
+    fn from(holidays: &[Holiday], country_code: &str) -> HolidayStats {
         let mut stats = HolidayStats {
             public_holidays: vec![],
             weekday_holidays: vec![],
             weekend_holidays: vec![],
             all_holidays: vec![],
+            country_code: String::from(country_code)
         };
         for i in 0..holidays.len() {
             let holiday_cloned = holidays[i].clone();
@@ -93,11 +97,20 @@ impl HolidayStats {
     }
 
     fn get_num_weekday(&self) -> usize {
-        self.weekend_holidays.len()
+        self.weekday_holidays.len()
     }
 
     fn get_num_weekend(&self) -> usize {
         self.weekend_holidays.len()
+    }
+
+    fn print_descriptive_stats(&self) {
+        println!("===== ===== country: {} ===== =====", self.country_code);
+        println!(" public holidays: {}", self.get_num_public());
+        println!("weekday holidays: {}", self.get_num_weekday());
+        println!("weekend holidays: {}", self.get_num_weekend());
+        println!("===== ===== ===== ===== ===== =====");
+        println!(" ");
     }
 }
 
@@ -110,57 +123,59 @@ fn pretty_print_json(api_data: &HolidayApiResponseBody) {
 fn main() -> Result<()> {
     match get_country_inputs() {
         Ok(country_codes) => {
-            println!("You gave me these country codes: {:?}", country_codes);
-            for country_code in country_codes.iter() {
-                match fetch_data(country_code) {
-                    Ok(data) => {
-                        // process data
-                        let stats = HolidayStats::from(&data.holidays);
-                        println!("Found data for {}", country_code);
-                    }
-                    Err(e) => {
-                        println!(
-                            "Failed to fetch data for {}, error: {}",
-                            country_code, e
-                        );
-                    }
+            for code in country_codes {
+                match fetch_data(&code) {
+                    Ok(data) => display_stats(&code, &data),
+                    Err(e) => println!("Fetch failed ({}), error: {}", code, e)
                 }
             }
         }
-        Err(e) => {
-            println!("Error: {}", e);
-        }
+        Err(e) => println!("Error: {}", e)
     }
     Ok(())
 }
 
-// todo: test the response when you run this with junk country code
+fn display_stats(code: &String, data: &HolidayApiResponseBody) {
+    let stats = HolidayStats::from(&data.holidays, &code);
+    stats.print_descriptive_stats();
+}
+
 fn fetch_data(country_code: &str)
-              -> std::result::Result<HolidayApiResponseBody, Box<dyn Error>> {
-    println!("Fetching data for {}...", country_code);
+              -> std::result::Result<HolidayApiResponseBody, Box<dyn Error>>
+{
     let client = reqwest::blocking::Client::new();
+    let query_params = build_query_map(country_code);
+    let response = client.get(API_ROOT).query(&query_params).send()?;
+
+    Ok(response.json()?)
+}
+
+fn build_query_map(country_code: &str) -> HashMap<&str, &str> {
     let mut query_params = HashMap::new();
     query_params.insert("key", API_KEY);
     query_params.insert("country", country_code);
     query_params.insert("year", YEAR);
-    let response = client.get(API_ROOT).query(&query_params).send()?;
-    let body: HolidayApiResponseBody = response.json()?;
-    Ok(body)
+    query_params
 }
 
 fn get_country_inputs()
     -> std::result::Result<Vec<String>, Box<dyn Error>>
 {
     let user_input = get_input(ASK_FOR_COUNTRY_CODES_MSG)?;
-    let xyz: Vec<String> = user_input
+    let mut codes: Vec<String> = user_input
         .trim()
         .split_whitespace()
         .map(|x| { String::from(x.trim()) })
         .collect();
-    if xyz.len() > 3 {
-        panic!("Only three countries are supported at this time");
+
+    if codes.len() > 3 {
+        println!("Only three countries are supported at this time");
+        while codes.len() > 3 {
+            codes.pop();
+        }
     }
-    Ok(xyz)
+
+    Ok(codes)
 }
 
 fn get_input(msg: &str) -> std::result::Result<String, Box<dyn Error>> {
