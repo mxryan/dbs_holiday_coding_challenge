@@ -114,12 +114,6 @@ impl HolidayStats {
     }
 }
 
-fn pretty_print_json(api_data: &HolidayApiResponseBody) {
-    let pretty_json = serde_json::to_string_pretty(&api_data)
-        .expect("Failed to serialize to JSON for pretty-printing.");
-    println!("data received: \n{}\n", pretty_json);
-}
-
 fn main() -> Result<()> {
     match get_country_inputs() {
         Ok(country_codes) => {
@@ -133,29 +127,6 @@ fn main() -> Result<()> {
         Err(e) => println!("Error: {}", e)
     }
     Ok(())
-}
-
-fn display_stats(code: &String, data: &HolidayApiResponseBody) {
-    let stats = HolidayStats::from(&data.holidays, &code);
-    stats.print_descriptive_stats();
-}
-
-fn fetch_data(country_code: &str)
-              -> std::result::Result<HolidayApiResponseBody, Box<dyn Error>>
-{
-    let client = reqwest::blocking::Client::new();
-    let query_params = build_query_map(country_code);
-    let response = client.get(API_ROOT).query(&query_params).send()?;
-
-    Ok(response.json()?)
-}
-
-fn build_query_map(country_code: &str) -> HashMap<&str, &str> {
-    let mut query_params = HashMap::new();
-    query_params.insert("key", API_KEY);
-    query_params.insert("country", country_code);
-    query_params.insert("year", YEAR);
-    query_params
 }
 
 fn get_country_inputs()
@@ -185,5 +156,34 @@ fn get_input(msg: &str) -> std::result::Result<String, Box<dyn Error>> {
     let mut input = String::new();
     io::stdin().read_line(&mut input)?;
     Ok(String::from(input.trim()))
+}
+
+fn fetch_data(country_code: &str)
+              -> std::result::Result<HolidayApiResponseBody, Box<dyn Error>>
+{
+    let client = reqwest::blocking::Client::new();
+    let query_params = build_query_map(country_code);
+    let response = client.get(API_ROOT).query(&query_params).send()?;
+
+    Ok(response.json()?)
+}
+
+fn build_query_map(country_code: &str) -> HashMap<&str, &str> {
+    let mut query_params = HashMap::new();
+    query_params.insert("key", API_KEY);
+    query_params.insert("country", country_code);
+    query_params.insert("year", YEAR);
+    query_params
+}
+
+fn display_stats(code: &String, data: &HolidayApiResponseBody) {
+    let stats = HolidayStats::from(&data.holidays, &code);
+    stats.print_descriptive_stats();
+}
+
+fn pretty_print_json(api_data: &HolidayApiResponseBody) {
+    let pretty_json = serde_json::to_string_pretty(&api_data)
+        .expect("Failed to serialize to JSON for pretty-printing.");
+    println!("data received: \n{}\n", pretty_json);
 }
 
