@@ -4,15 +4,13 @@ use serde_json;
 use reqwest;
 use std::io;
 use std::io::*;
-use std::ops::Add;
 use std::collections::HashMap;
 use std::error::Error;
-use serde_json::ser::State;
+use primes;
 
 const API_ROOT: &str = "https://holidayapi.com/v1/holidays";
 const YEAR: &str = "2019";
 const API_KEY: &str = "4375217a-5fd6-4b2a-8258-9b5bf543b7cc";
-const DEFAULT_COUNTRY_CODE: &str = "US";
 const ASK_FOR_COUNTRY_CODES_MSG: &str = "Enter country codes separated by spaces. A maximum of 3 country codes are supported at this time";
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -75,7 +73,7 @@ impl HolidayStats {
             weekday_holidays: vec![],
             weekend_holidays: vec![],
             all_holidays: vec![],
-            country_code: String::from(country_code)
+            country_code: String::from(country_code),
         };
         for i in 0..holidays.len() {
             let holiday_cloned = holidays[i].clone();
@@ -104,11 +102,22 @@ impl HolidayStats {
         self.weekend_holidays.len()
     }
 
+    fn get_num_prime_holidays(&self) -> i32 {
+        self.all_holidays.iter().fold(0, |acc, holiday| {
+            if is_date_prime(&holiday.date) {
+                acc + 1
+            } else {
+                acc
+            }
+        })
+    }
+
     fn print_descriptive_stats(&self) {
         println!("===== ===== country: {} ===== =====", self.country_code);
         println!(" public holidays: {}", self.get_num_public());
         println!("weekday holidays: {}", self.get_num_weekday());
         println!("weekend holidays: {}", self.get_num_weekend());
+        println!("  prime holidays: {}", self.get_num_prime_holidays());
         println!("===== ===== ===== ===== ===== =====");
         println!(" ");
     }
@@ -129,14 +138,12 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn get_country_inputs()
-    -> std::result::Result<Vec<String>, Box<dyn Error>>
-{
+fn get_country_inputs() -> std::result::Result<Vec<String>, Box<dyn Error>> {
     let user_input = get_input(ASK_FOR_COUNTRY_CODES_MSG)?;
     let mut codes: Vec<String> = user_input
         .trim()
         .split_whitespace()
-        .map(|x| { String::from(x.trim()) })
+        .map(|x| String::from(x.trim()))
         .collect();
 
     if codes.len() > 3 {
@@ -181,9 +188,9 @@ fn display_stats(code: &String, data: &HolidayApiResponseBody) {
     stats.print_descriptive_stats();
 }
 
-fn pretty_print_json(api_data: &HolidayApiResponseBody) {
-    let pretty_json = serde_json::to_string_pretty(&api_data)
-        .expect("Failed to serialize to JSON for pretty-printing.");
-    println!("data received: \n{}\n", pretty_json);
+fn is_date_prime(date_yyyy_mm_dd: &str) -> bool {
+    let x: Vec<&str> = date_yyyy_mm_dd.split("-").collect();
+    let date_chunks: Vec<&str> = x.iter().rev().map(|chunk| *chunk).collect();
+    let num: u64 = date_chunks.join("").parse().unwrap();
+    primes::is_prime(num)
 }
-
